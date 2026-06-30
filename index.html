@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a0a0a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Forge">
+<title>Forge — Jeyson</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon192.png">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{height:100%;background:#0a0a0a}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:#0a0a0a;color:#e8e6e0;min-height:100vh;min-height:100dvh;overscroll-behavior:none;-webkit-font-smoothing:antialiased;}
+:root{
+  --bg:#0a0a0a;--surface:#131313;--surface2:#1a1a1a;--surface3:#222;
+  --border:#2a2a2a;--border2:#383838;--text:#e8e6e0;--muted:#666660;--subtle:#444440;
+  --xp:#7f77dd;--xp-dim:#3c3489;--xp-bg:#1a1830;
+  --fire:#d85a30;--fire-bg:#2a1510;
+  --green:#3b6d11;--green-bg:#0f1f06;--green-txt:#7ac94a;
+  --gold:#ba7517;--gold-bg:#2a1e08;
+  --r:10px;--r-sm:7px;--nav-h:64px;
+}
+.app{max-width:430px;margin:0 auto;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;}
+.scroll-area{flex:1;overflow-y:auto;padding-bottom:calc(var(--nav-h) + 16px);padding-top:env(safe-area-inset-top,0);}
+.scroll-area::-webkit-scrollbar{display:none}
+
+/* Splash */
+.splash-overlay{position:fixed;inset:0;background:#0a0a0a;display:flex;align-items:center;justify-content:center;z-index:500;transition:opacity .6s ease;}
+.splash-overlay.hide{opacity:0;pointer-events:none;}
+.splash-inner{text-align:center;padding:0 32px;}
+.splash-greeting{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;}
+.splash-name{font-size:36px;font-weight:700;letter-spacing:-1px;color:var(--text);margin-bottom:24px;}
+.splash-name span{color:var(--xp);}
+.splash-divider{width:40px;height:1px;background:var(--border2);margin:0 auto 24px;}
+.splash-quote{font-size:16px;color:var(--text);font-style:italic;line-height:1.6;margin-bottom:10px;}
+.splash-author{font-size:12px;color:var(--muted);letter-spacing:0.5px;}
+
+/* Nav */
+.nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;height:var(--nav-h);background:#0e0e0ecc;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:0.5px solid var(--border);display:flex;align-items:stretch;padding-bottom:env(safe-area-inset-bottom,0);z-index:50;}
+.nav-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;color:var(--muted);font-size:10px;letter-spacing:0.5px;text-transform:uppercase;border:none;background:transparent;}
+.nav-tab.active{color:var(--xp)}
+.nav-icon{font-size:20px;line-height:1}
+
+/* Hero */
+.hero{padding:24px 20px 0;}
+.hero-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;}
+.hero-greeting{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:4px;}
+.hero-name{font-size:24px;font-weight:700;letter-spacing:-0.8px;color:var(--text);line-height:1;}
+.hero-name span{color:var(--xp)}
+.streak-pill{display:flex;align-items:center;gap:6px;background:var(--fire-bg);border:0.5px solid var(--fire);border-radius:20px;padding:6px 12px;flex-shrink:0;}
+.streak-n{font-size:18px;font-weight:700;color:var(--fire);line-height:1}
+.streak-lbl{font-size:11px;color:var(--fire);opacity:.7;line-height:1.2}
+
+/* Fecha */
+.date-bar{display:flex;align-items:center;justify-content:space-between;padding:0 20px;margin-top:16px;}
+.date-weekday{font-size:11px;font-weight:600;color:var(--xp);text-transform:uppercase;letter-spacing:1px;}
+.date-full{font-size:18px;font-weight:700;letter-spacing:-0.5px;color:var(--text);}
+.date-next{font-size:11px;color:var(--muted);text-align:right;line-height:1.6;max-width:54%;}
+.date-next strong{color:var(--text);}
+
+/* XP */
+.xp-section{padding:14px 20px 0}
+.xp-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.xp-level{font-size:12px;font-weight:600;color:var(--xp);letter-spacing:0.5px}
+.xp-pts{font-size:11px;color:var(--muted)}
+.xp-track{height:4px;background:var(--surface3);border-radius:2px;overflow:hidden}
+.xp-fill{height:100%;background:var(--xp);border-radius:2px;transition:width .5s cubic-bezier(.4,0,.2,1)}
+
+/* Calendario semana */
+.cal-wrap{padding:14px 20px 0;}
+.cal-week-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;}
+.cal-label{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+.cal-week-km{font-size:12px;font-weight:700;color:var(--xp);}
+.cal-strip{display:flex;gap:5px;}
+.cal-day{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 2px;border-radius:var(--r-sm);border:0.5px solid var(--border);background:var(--surface);position:relative;}
+.cal-day.today{border-color:var(--xp);background:var(--xp-bg);}
+.cal-day.done{border-color:var(--green);background:var(--green-bg);}
+.cal-day.partial{border-color:var(--gold);background:var(--gold-bg);}
+.cal-day.upcoming{border-color:var(--border2);}
+.cal-dow{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);}
+.cal-day.today .cal-dow{color:var(--xp);}.cal-day.done .cal-dow{color:var(--green-txt);}.cal-day.partial .cal-dow{color:var(--gold);}
+.cal-num{font-size:15px;font-weight:700;color:var(--text);}
+.cal-day.today .cal-num{color:var(--xp);}.cal-day.done .cal-num{color:var(--green-txt);}.cal-day.partial .cal-num{color:var(--gold);}
+.cal-marks{display:flex;gap:3px;margin-top:1px;}
+.cal-dot{width:5px;height:5px;border-radius:50%;background:var(--border2);}
+.cal-dot.on{background:var(--green-txt);}
+.cal-check{position:absolute;top:4px;right:4px;font-size:9px;color:var(--green-txt);}
+
+.divider{height:0.5px;background:var(--border);margin:18px 20px 0;}
+.sec-lbl{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1px;padding:20px 20px 10px;}
+
+/* Plan de mañanas (editable) */
+.plan-card{margin:0 20px 10px;background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);padding:14px;}
+.plan-card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.plan-card-title{font-size:13px;font-weight:700;color:var(--text);}
+.plan-updated{font-size:10px;color:var(--subtle);}
+.plan-textarea{width:100%;min-height:90px;background:var(--surface2);border:0.5px solid var(--border2);border-radius:var(--r-sm);color:var(--text);font-size:13px;font-family:inherit;padding:11px;line-height:1.5;outline:none;resize:vertical;}
+.plan-textarea:focus{border-color:var(--xp);}
+.plan-save-btn{width:100%;margin-top:9px;padding:11px;border:none;border-radius:var(--r-sm);background:var(--xp);color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;}
+.plan-save-btn:active{opacity:.9}
+
+/* Day cards */
+.day-card{margin:0 20px 10px;background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.day-card.done-card{border-color:var(--green)}
+.day-card.morning-card{border-top:2px solid var(--xp-dim);}
+.day-card.afternoon-card{border-top:2px solid var(--fire);}
+.day-card-head{padding:16px;display:flex;justify-content:space-between;align-items:center;}
+.day-head-left{display:flex;flex-direction:column;gap:3px}
+.day-name{font-size:15px;font-weight:700;letter-spacing:0.5px}
+.day-name.blk-morning{color:var(--xp)}.day-name.blk-afternoon{color:var(--fire)}
+.day-meta{font-size:12px;color:var(--muted)}
+.day-head-right{display:flex;align-items:center;gap:10px}
+.day-xp-tag{font-size:11px;font-weight:600;color:var(--xp);background:var(--xp-bg);padding:4px 9px;border-radius:20px;white-space:nowrap;}
+.day-xp-tag.fire-tag{color:var(--fire);background:var(--fire-bg);}
+.done-ring{width:30px;height:30px;border-radius:50%;border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--muted);flex-shrink:0;}
+.done-ring.completed{background:var(--green-bg);border-color:var(--green);color:var(--green-txt);font-size:16px;}
+.session-body{border-top:0.5px solid var(--border);padding:16px;}
+
+.plan-text-box{background:var(--surface2);border:0.5px solid var(--border2);border-radius:var(--r-sm);padding:12px;font-size:13px;line-height:1.6;color:var(--text);margin-bottom:14px;white-space:pre-wrap;}
+
+.km-input-row{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.km-input-row label{font-size:12px;color:var(--muted);flex-shrink:0;}
+.km-input-row .set-inp{flex:1;}
+
+/* Timers */
+.dual-timer{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}
+.timer-block{background:var(--surface2);border-radius:var(--r-sm);padding:12px;}
+.timer-block-label{font-size:9px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;}
+.timer-display{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-1px;line-height:1;margin-bottom:8px;}
+.timer-display.xp-col{color:var(--xp)}.timer-display.green-col{color:var(--green-txt)}.timer-display.urgent{color:var(--fire)}
+.timer-controls{display:flex;flex-direction:column;gap:5px;}
+.timer-row{display:flex;gap:4px;}
+.t-btn{flex:1;padding:7px 0;border:0.5px solid var(--border2);border-radius:var(--r-sm);background:transparent;color:var(--muted);font-size:11px;font-family:inherit;cursor:pointer;}
+.t-btn:active{transform:scale(.96)}
+.t-btn.go{background:var(--xp-bg);border-color:var(--xp-dim);color:var(--xp);font-weight:600;}
+.t-btn.running{background:var(--fire-bg);border-color:var(--fire);color:var(--fire);font-weight:600;}
+.t-btn.session-go{background:var(--green-bg);border-color:var(--green);color:var(--green-txt);font-weight:600;font-size:12px;}
+.t-btn.session-running{background:#1a2a10;border-color:var(--green-txt);color:var(--green-txt);font-weight:600;font-size:12px;}
+
+/* Countdown */
+.countdown-overlay{position:fixed;inset:0;background:rgba(10,10,10,.95);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;opacity:0;pointer-events:none;transition:opacity .2s;}
+.countdown-overlay.show{opacity:1;pointer-events:all}
+.countdown-big{font-size:120px;font-weight:700;color:var(--xp);line-height:1;font-variant-numeric:tabular-nums;transition:transform .15s;}
+.countdown-big.pop{transform:scale(1.2)}
+.countdown-msg{font-size:16px;color:var(--muted);margin-top:16px;text-align:center;padding:0 32px;line-height:1.5;}
+.countdown-msg span{color:var(--text);font-weight:600;}
+.countdown-sub{font-size:13px;color:var(--subtle);margin-top:8px;}
+
+/* Repeticiones mañana */
+.reps-head-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.reps-head-row span{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+.add-rep-btn{font-size:11px;font-weight:600;color:var(--xp);background:var(--xp-bg);border:0.5px solid var(--xp-dim);border-radius:20px;padding:5px 12px;cursor:pointer;font-family:inherit;}
+.rep-row{display:grid;grid-template-columns:20px 1fr 22px;gap:7px;align-items:center;margin-bottom:7px;}
+.rep-n{font-size:11px;color:var(--muted);font-weight:600}
+.set-inp{width:100%;padding:9px 6px;background:var(--surface2);border:0.5px solid var(--border2);border-radius:var(--r-sm);color:var(--text);font-size:14px;font-family:inherit;text-align:center;outline:none;-webkit-appearance:none;}
+.set-inp:focus{border-color:var(--xp)}
+.set-inp.has-val{border-color:#2d3d1a;background:#0d1508}
+.rep-remove{width:22px;height:22px;display:flex;align-items:center;justify-content:center;color:var(--subtle);font-size:16px;cursor:pointer;}
+.reps-empty{font-size:12px;color:var(--subtle);padding:6px 0 4px;line-height:1.5;}
+.prueba-card{background:var(--surface2);border:0.5px solid var(--border2);border-radius:var(--r-sm);padding:10px;margin-bottom:10px;}
+.prueba-card:last-child{margin-bottom:0;}
+.prueba-head{display:flex;align-items:center;gap:8px;margin-bottom:9px;}
+.prueba-name-inp{flex:1;padding:8px 10px;background:var(--surface3);border:0.5px solid var(--border2);border-radius:var(--r-sm);color:var(--text);font-size:13px;font-weight:600;font-family:inherit;outline:none;}
+.prueba-name-inp:focus{border-color:var(--xp);}
+.feel-row{display:flex;flex-wrap:wrap;gap:5px;margin:3px 0 10px 27px;}
+.feel-chip{font-size:10px;padding:5px 9px;border-radius:14px;border:0.5px solid var(--border2);background:transparent;color:var(--muted);font-family:inherit;cursor:pointer;white-space:nowrap;}
+.feel-chip.selected{background:var(--xp-bg);border-color:var(--xp-dim);color:var(--xp);font-weight:600;}
+
+/* Checklist tarde */
+.checklist{margin-bottom:14px;}
+.check-item{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:0.5px solid var(--border);cursor:pointer;}
+.check-item:last-child{border-bottom:none;}
+.check-circle{width:24px;height:24px;border-radius:50%;border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:12px;color:transparent;flex-shrink:0;}
+.check-item.ticked .check-circle{background:var(--green-bg);border-color:var(--green);color:var(--green-txt);}
+.check-label{font-size:14px;color:var(--text);line-height:1.4;}
+.check-item.ticked .check-label{color:var(--muted);}
+
+.complete-btn{width:100%;margin-top:18px;padding:14px;border:none;border-radius:var(--r);background:var(--xp);color:#fff;font-size:15px;font-weight:700;font-family:inherit;letter-spacing:0.3px;cursor:pointer;}
+.complete-btn:active{transform:scale(.98);opacity:.9}.complete-btn:disabled{opacity:.35;cursor:not-allowed;transform:none}.complete-btn.is-done{background:var(--green);cursor:not-allowed}
+
+.rest-card{margin:0 20px;background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);padding:28px 20px;text-align:center;}
+.rest-icon{font-size:40px;margin-bottom:12px}.rest-title{font-size:17px;font-weight:600;margin-bottom:6px}.rest-sub{font-size:13px;color:var(--muted);line-height:1.5}
+
+/* Historial */
+.hist-entry{margin:0 20px 10px;background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.hist-head{padding:14px 16px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;}
+.hist-day-name{font-size:15px;font-weight:700}.hist-date{font-size:12px;color:var(--muted)}
+.hist-body{border-top:0.5px solid var(--border);padding:14px 16px;display:none;}.hist-body.open{display:block}
+.hist-ex-name{font-size:12px;font-weight:600;color:var(--muted);margin-bottom:5px;margin-top:10px}.hist-ex-name:first-child{margin-top:0}
+.hist-set-row{font-size:13px;color:var(--text);padding:2px 0}.hist-set-row span{color:var(--muted);font-size:11px}
+.hist-dur{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--green-txt);background:var(--green-bg);padding:2px 8px;border-radius:20px;margin-left:6px;}
+.empty-state{text-align:center;padding:48px 20px;color:var(--muted);}
+.empty-icon{font-size:36px;margin-bottom:12px}.empty-title{font-size:15px;font-weight:600;color:var(--subtle);margin-bottom:6px}.empty-sub{font-size:13px;line-height:1.5}
+
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:#222;border:0.5px solid var(--border2);border-radius:var(--r);padding:12px 20px;font-size:13px;font-weight:500;z-index:300;transition:transform .3s cubic-bezier(.4,0,.2,1);pointer-events:none;padding-top:calc(12px + env(safe-area-inset-top,0));max-width:88%;text-align:center;}
+.toast.show{transform:translateX(-50%) translateY(0)}
+input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none}
+input[type=number]{-moz-appearance:textfield}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="scroll-area" id="scrollArea">
+    <div class="hero">
+      <div class="hero-top">
+        <div>
+          <div class="hero-greeting" id="heroGreeting">Buenos días</div>
+          <div class="hero-name"><span>Jeyson</span></div>
+        </div>
+        <div class="streak-pill"><div>
+          <div class="streak-n" id="streakN">0</div>
+          <div class="streak-lbl">racha 🔥</div>
+        </div></div>
+      </div>
+    </div>
+
+    <div class="date-bar">
+      <div>
+        <div class="date-weekday" id="dateWeekday">Lunes</div>
+        <div class="date-full" id="dateFull">29 de junio, 2026</div>
+      </div>
+      <div class="date-next" id="dateNext"></div>
+    </div>
+
+    <div class="xp-section">
+      <div class="xp-row"><span class="xp-level" id="xpLevel">NIVEL 1</span><span class="xp-pts" id="xpPts">0 / 200 XP</span></div>
+      <div class="xp-track"><div class="xp-fill" id="xpFill" style="width:0%"></div></div>
+    </div>
+
+    <div class="cal-wrap">
+      <div class="cal-week-row"><div class="cal-label">Esta semana</div><div class="cal-week-km" id="calWeekKm">0.0 km</div></div>
+      <div class="cal-strip" id="calStrip"></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div id="viewHoy"></div>
+    <div id="viewHistorial" style="display:none"></div>
+  </div>
+
+  <nav class="nav">
+    <button class="nav-tab active" id="navHoy" onclick="goTab('hoy')"><span class="nav-icon">⚡</span>Hoy</button>
+    <button class="nav-tab" id="navHistorial" onclick="goTab('historial')"><span class="nav-icon">📋</span>Historial</button>
+  </nav>
+</div>
+
+<div class="splash-overlay" id="splashOverlay">
+  <div class="splash-inner">
+    <div class="splash-greeting" id="splashGreeting">Bienvenido</div>
+    <div class="splash-name"><span>Jeyson</span></div>
+    <div class="splash-divider"></div>
+    <div class="splash-quote" id="splashQuoteText">"Todo es posible, no creo límites."</div>
+    <div class="splash-author" id="splashAuthorText">— Jeyson</div>
+  </div>
+</div>
+
+<div class="countdown-overlay" id="countdownOverlay">
+  <div class="countdown-big" id="countdownNum">5</div>
+  <div class="countdown-msg">Sincroniza tu reloj GPS — bloque <span id="countdownBlockLabel">MAÑANA</span><br>— presiona START en tu reloj ahora —</div>
+  <div class="countdown-sub">El cronómetro arranca cuando llegue a 0</div>
+</div>
+
+<div class="splash-overlay" id="completeSplash" style="display:none;">
+  <div class="splash-inner">
+    <div class="splash-greeting">DÍA COMPLETADO</div>
+    <div class="splash-name" id="cmpName">COMPLETADO</div>
+    <div style="margin:6px 0 20px;font-size:13px;color:var(--muted)" id="cmpDur"></div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:24px;">
+      <div style="text-align:center;">
+        <div style="font-size:48px;font-weight:700;color:var(--fire);line-height:1;" id="cmpStreak">0</div>
+        <div style="font-size:11px;color:var(--fire);opacity:.8;text-transform:uppercase;letter-spacing:1px;margin-top:3px;">🔥 racha</div>
+      </div>
+      <div style="width:1px;height:44px;background:var(--border2);"></div>
+      <div style="text-align:center;">
+        <div style="font-size:48px;font-weight:700;color:var(--xp);line-height:1;" id="cmpXP">+80</div>
+        <div style="font-size:11px;color:var(--xp);opacity:.8;text-transform:uppercase;letter-spacing:1px;margin-top:3px;">XP</div>
+      </div>
+    </div>
+    <div class="splash-divider"></div>
+    <div class="splash-quote" id="cmpQuote">"..."</div>
+    <div class="splash-author" id="cmpAuthor">—</div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ══ DATOS FIJOS ══ */
+const TARDE={
+  1:{label:'Lunes',items:["50' trote","Jalones 8×80m","Burpees con abdominales","Ejercicios pliométricos","Estiramientos"]},
+  2:{label:'Martes',items:["50' trote de recuperación","Jalones 8×80m","Burpees para soltar","Fortalecimiento — 5 tipos de sentadillas (3-5kg o sin peso)","Estiramientos"]},
+  3:{label:'Miércoles',items:["50' trote","Jalones 8×80m","Burpees con abdominales","Ejercicios pliométricos","Estiramientos"]},
+  4:{label:'Jueves',items:["50' trote de recuperación","Jalones 8×80m","Burpees para soltar","Fortalecimiento — 5 tipos de sentadillas (3-5kg o sin peso)","Estiramientos"]},
+  5:{label:'Viernes',items:["40' trote suave","5 técnicas de carrera","Estiramientos"]},
+};
+const DOW_NAMES=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+const DOW_KEYS=['domingo','lunes','martes','miercoles','jueves','viernes','sabado'];
+const MES_NAMES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const XP_MORNING=70, XP_AFTERNOON=40;
+const QUOTES=[
+  {text:'El dolor de hoy es la velocidad de mañana.',tag:'disciplina, no motivación'},
+  {text:'La mente se rinde mucho antes que el cuerpo. No le creas.',tag:'mentalidad de fondo'},
+  {text:'Cuando quieras parar, ahí recién empieza tu entrenamiento real.',tag:'sufrimiento como entrenamiento'},
+  {text:'Nadie ve los 1000 a las 5am. Por eso valen más que cualquier medalla.',tag:'lo que nadie ve'},
+  {text:'No corres por motivación. Corres porque lo decidiste, y ya está.',tag:'disciplina, no motivación'},
+  {text:'Cada repetición que no quieres correr es la que más te va a servir.',tag:'mentalidad de hierro'},
+  {text:'Disciplina es hacerlo aunque tu cuerpo te diga que no.',tag:'disciplina, no motivación'},
+  {text:'Todo es posible, no creo límites.',tag:'Jeyson'},
+];
+function randomQuote(){return QUOTES[Math.floor(Math.random()*QUOTES.length)];}
+
+// Cómo se sintió cada repetición — selección rápida con un toque, sin tener que escribir.
+const FEEL_OPTIONS=[
+  {key:'fuerte',emoji:'💪',label:'Fuerte'},
+  {key:'controlado',emoji:'👍',label:'Bien'},
+  {key:'costo',emoji:'😣',label:'Costó'},
+  {key:'limite',emoji:'🥵',label:'Límite'},
+];
+
+/* ══ ESTADO + INDEXEDDB ══ */
+let DB=null;
+let S={
+  streak:0,totalXP:0,
+  session:{morning:{km:'',pruebas:[]},afternoon:{km:'',items:{}}},
+  logs:{},
+  weeklyMorningPlan:{raw:'',parsed:{},updatedAt:0},
+  timers:{morning:{startTs:null,accum:0,restStartTs:null,restRemain:0},afternoon:{startTs:null,accum:0,restStartTs:null,restRemain:0}},
+  lastActiveDate:''
+};
+function idbOpen(){return new Promise((ok,fail)=>{const req=indexedDB.open('forgeJeyson',1);req.onupgradeneeded=e=>e.target.result.createObjectStore('kv');req.onsuccess=e=>{DB=e.target.result;ok()};req.onerror=fail});}
+function idbGet(k){return new Promise(ok=>{const t=DB.transaction('kv','readonly');const r=t.objectStore('kv').get(k);r.onsuccess=()=>ok(r.result??null)});}
+function idbSet(k,v){return new Promise(ok=>{const t=DB.transaction('kv','readwrite');t.objectStore('kv').put(v,k);t.oncomplete=ok});}
+async function loadS(){
+  const d=await idbGet('stateJeyson');
+  if(d){
+    S={...S,...d};
+    S.session=d.session||{morning:{km:'',pruebas:[]},afternoon:{km:'',items:{}}};
+    if(!Array.isArray(S.session.morning?.pruebas))S.session.morning={km:S.session.morning?.km||'',pruebas:[]};
+    if(!S.session.afternoon)S.session.afternoon={km:'',items:{}};
+    S.logs=d.logs||{};
+    S.weeklyMorningPlan=d.weeklyMorningPlan||{raw:'',parsed:{},updatedAt:0};
+    S.timers=d.timers||{morning:{startTs:null,accum:0,restStartTs:null,restRemain:0},afternoon:{startTs:null,accum:0,restStartTs:null,restRemain:0}};
+  }
+}
+async function saveS(){await idbSet('stateJeyson',S);}
+async function ensureFreshDay(){
+  const tk=todayKey();
+  if(S.lastActiveDate!==tk){
+    S.session={morning:{km:'',pruebas:[]},afternoon:{km:'',items:{}}};
+    S.lastActiveDate=tk;
+    autoBreakdownMorning(new Date().getDay());
+    await saveS();
+  }
+}
+
+/* ══ HELPERS ══ */
+function pad2(n){return n.toString().padStart(2,'0');}
+function localISO(d){return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;}
+function todayKey(){return localISO(new Date());}
+function dateOffset(n){const d=new Date();d.setDate(d.getDate()+n);return{key:localISO(d),dow:d.getDay(),date:d};}
+function dowOfKey(key){return new Date(key+'T12:00:00').getDay();}
+function fmtDate(k){const[y,m,d]=k.split('-');return`${d}/${m}/${y.slice(2)}`;}
+function fmtDur(s){const h=Math.floor(s/3600);const m=Math.floor((s%3600)/60);const sec=s%60;if(h>0)return`${h}h ${m}m`;if(m>0)return`${m}m ${sec.toString().padStart(2,'0')}s`;return`${s}s`;}
+function fmtKm(n){return (Math.round((n||0)*10)/10).toFixed(1)+' km';}
+function truncate(s,n){return s.length>n?s.slice(0,n-1)+'…':s;}
+function greetingWord(){const h=new Date().getHours();if(h<12)return'Buenos días';if(h<19)return'Buenas tardes';return'Buenas noches';}
+function escapeHTML(s){return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function escapeAttr(s){return escapeHTML(s).replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+
+/* ══ COMPLETITUD / RACHA / KM ══ */
+function hasTarde(dw){return !!TARDE[dw];}
+function morningDoneFor(key){return !!S.logs[key]?.morning?.completed;}
+function afternoonDoneFor(key){return !!S.logs[key]?.afternoon?.completed;}
+function dayFullyComplete(key){
+  const dw=dowOfKey(key);
+  const mOk=morningDoneFor(key);
+  const aOk=hasTarde(dw)?afternoonDoneFor(key):true;
+  return mOk&&aOk;
+}
+function calcStreak(){
+  let s=0;const tk=todayKey();
+  const start=dayFullyComplete(tk)?0:1;
+  for(let i=start;i<60;i++){
+    const{key}=dateOffset(-i);
+    if(dayFullyComplete(key))s++;else break;
+  }
+  S.streak=s;
+}
+function weekRange(){
+  const d=new Date();const dw=d.getDay();
+  const mondayOffset=dw===0?-6:1-dw;
+  const monday=new Date(d);monday.setDate(d.getDate()+mondayOffset);monday.setHours(0,0,0,0);
+  const sunday=new Date(monday);sunday.setDate(monday.getDate()+6);sunday.setHours(23,59,59,999);
+  return{monday,sunday};
+}
+function kmThisWeek(){
+  const{monday,sunday}=weekRange();let total=0;
+  Object.entries(S.logs).forEach(([key,log])=>{
+    const d=new Date(key+'T12:00:00');if(d<monday||d>sunday)return;
+    total+=(parseFloat(log.morning?.km)||0)+(parseFloat(log.afternoon?.km)||0);
+  });
+  return total;
+}
+
+/* ══ PARSER — plan de mañanas en texto libre ══ */
+const DAY_PATTERNS=[
+  {key:'lunes',re:/^lunes\b/i},{key:'martes',re:/^martes\b/i},{key:'miercoles',re:/^mi[eé]rcoles\b/i},
+  {key:'jueves',re:/^jueves\b/i},{key:'viernes',re:/^viernes\b/i},{key:'sabado',re:/^s[aá]bado\b/i},{key:'domingo',re:/^domingo\b/i},
+];
+function parseMorningPlan(text){
+  const result={lunes:'',martes:'',miercoles:'',jueves:'',viernes:'',sabado:'',domingo:''};
+  const lines=(text||'').split('\n').map(l=>l.trim()).filter(Boolean);
+  let current=null;
+  for(const line of lines){
+    if(/^tardes\b/i.test(line))break;
+    if(/^ma[ñn]anas?\s*$/i.test(line))continue;
+    let matched=null,rest='';
+    for(const dp of DAY_PATTERNS){const m=line.match(dp.re);if(m){matched=dp.key;rest=line.slice(m[0].length).trim();break;}}
+    if(matched){
+      current=matched;
+      rest=rest.replace(/^[:.\-•,]+\s*/,'').trim();
+      if(rest)result[current]=rest;
+      continue;
+    }
+    if(current){
+      const c=line.replace(/^[.\-•]\s*/,'').trim();
+      if(c)result[current]=result[current]?result[current]+' '+c:c;
+    }
+  }
+  return result;
+}
+
+/* ══ DESGLOSE AUTOMÁTICO — convierte el texto de un día en pruebas con repeticiones listas ══
+   Reconoce patrones tipo "10x400" o "250x10". Si encuentra varios números encadenados
+   (ej. "4x5x250"), usa el más chico como cantidad inicial — más fácil agregar una
+   repetición de más que borrar varias de más. Si el día no tiene ningún patrón "NxM"
+   (trote o fondo continuo), no arma nada: ahí solo se registra el km. */
+const CHAIN_RE=/\d+(?:\s*[x×]\s*\d+)+/g;
+function findChainsInSegment(seg){
+  const masked=seg.replace(/\([^)]*\)/g,m=>' '.repeat(m.length));
+  const matches=[];let m;CHAIN_RE.lastIndex=0;
+  while((m=CHAIN_RE.exec(masked))!==null)matches.push({start:m.index,raw:m[0]});
+  if(!matches.length)return[];
+  return matches.map((mm,i)=>{
+    const segEnd=i+1<matches.length?matches[i+1].start:seg.length;
+    let label=seg.slice(mm.start,segEnd).trim();
+    if(!label)label=mm.raw;
+    const nums=mm.raw.match(/\d+/g).map(Number);
+    const small=nums.filter(n=>n<60);
+    const count=Math.max(1,Math.min(small.length?Math.min(...small):Math.min(...nums),30));
+    return{name:label,count};
+  });
+}
+function extractRepChunks(text){
+  if(!text)return[];
+  const segments=text.split('+');
+  const anyChain=segments.some(seg=>findChainsInSegment(seg).length>0);
+  if(!anyChain)return[];
+  const chunks=[];
+  segments.forEach(seg=>{
+    const found=findChainsInSegment(seg);
+    if(found.length)chunks.push(...found);
+    else chunks.push({name:seg.trim(),count:1});
+  });
+  return chunks;
+}
+function autoBreakdownMorning(dw){
+  if((S.session.morning.pruebas||[]).length)return; // ya hay datos cargados — no se toca
+  const text=(S.weeklyMorningPlan.parsed||{})[DOW_KEYS[dw]]||'';
+  const chunks=extractRepChunks(text);
+  S.session.morning.pruebas=chunks.map(c=>({name:c.name,reps:Array.from({length:c.count},()=>({real:'',feel:''}))}));
+}
+
+/* ══ HEADER / CALENDARIO / XP ══ */
+function renderHeader(){
+  const now=new Date();
+  document.getElementById('heroGreeting').textContent=greetingWord();
+  document.getElementById('dateWeekday').textContent=DOW_NAMES[now.getDay()];
+  document.getElementById('dateFull').textContent=`${now.getDate()} de ${MES_NAMES[now.getMonth()]}, ${now.getFullYear()}`;
+  const tmr=dateOffset(1);
+  const preview=(S.weeklyMorningPlan.parsed||{})[DOW_KEYS[tmr.dow]];
+  document.getElementById('dateNext').innerHTML=preview?`Mañana:<br><strong>${escapeHTML(truncate(preview,46))}</strong>`:'Mañana:<br>sin plan cargado';
+}
+function renderCal(){
+  const{monday}=weekRange();
+  let html='';
+  for(let i=0;i<7;i++){
+    const d=new Date(monday);d.setDate(monday.getDate()+i);
+    const dk=localISO(d);const dw=d.getDay();
+    const isToday=dk===todayKey();
+    const mDone=morningDoneFor(dk);
+    const need=hasTarde(dw);
+    const aDone=need?afternoonDoneFor(dk):true;
+    const full=mDone&&aDone;
+    const partial=!full&&(mDone||(need&&aDone));
+    let cls='cal-day';
+    if(full)cls+=' done';else if(partial)cls+=' partial';else if(isToday)cls+=' today';
+    html+=`<div class="${cls}">${full?'<div class="cal-check">✓</div>':''}
+      <div class="cal-dow">${DOW_NAMES[dw].slice(0,3)}</div>
+      <div class="cal-num">${d.getDate()}</div>
+      <div class="cal-marks"><span class="cal-dot${mDone?' on':''}"></span>${need?`<span class="cal-dot${aDone?' on':''}"></span>`:''}</div>
+    </div>`;
+  }
+  document.getElementById('calStrip').innerHTML=html;
+  document.getElementById('calWeekKm').textContent=fmtKm(kmThisWeek());
+}
+function renderXP(){
+  const lvl=Math.floor(S.totalXP/200)+1;
+  const inLvl=S.totalXP-(lvl-1)*200;
+  const pct=Math.min(100,Math.round(inLvl/200*100));
+  document.getElementById('xpLevel').textContent=`NIVEL ${lvl}`;
+  document.getElementById('xpPts').textContent=`${S.totalXP} / ${lvl*200} XP`;
+  document.getElementById('xpFill').style.width=pct+'%';
+  document.getElementById('streakN').textContent=S.streak;
+}
+
+/* ══ TIMERS — descanso + sesión, por bloque (morning/afternoon) ══
+   Los dos cronómetros se guardan como marca de tiempo real (timestamp) en
+   S.timers, no como un contador que solo vive en memoria. Por eso, si cierras
+   la app, la matas desde el selector de apps, o el celular la manda a segundo
+   plano, al volver se recalcula cuánto tiempo pasó de verdad usando el reloj
+   del teléfono — ninguno de los dos se cancela ni se reinicia solo. */
+let restRunning={morning:false,afternoon:false}, restInt={morning:null,afternoon:null};
+function getRestSecs(b){
+  const t=S.timers[b];
+  if(restRunning[b]&&t.restStartTs)return Math.max(0,(t.restRemain||0)-Math.floor((Date.now()-t.restStartTs)/1000));
+  return t.restRemain||0;
+}
+function restTick(b){
+  if(getRestSecs(b)<=0){stopRest(b);refreshRestDisplay(b);showToast('✓ Descanso terminado');return;}
+  refreshRestDisplay(b);
+}
+function refreshRestDisplay(b){
+  const el=document.getElementById('restDisp_'+b);if(!el)return;
+  const secs=getRestSecs(b);
+  const m=Math.floor(secs/60).toString().padStart(2,'0');const s=(secs%60).toString().padStart(2,'0');
+  el.textContent=`${m}:${s}`;
+  el.className='timer-display xp-col'+(secs<=10&&secs>0?' urgent':'');
+}
+function startRest(b){
+  if(restRunning[b])return;
+  S.timers[b].restStartTs=Date.now();restRunning[b]=true;
+  saveS();restInt[b]=setInterval(()=>restTick(b),1000);refreshRestBtn(b);
+}
+function stopRest(b){
+  if(restRunning[b]){S.timers[b].restRemain=getRestSecs(b);S.timers[b].restStartTs=null;saveS();}
+  clearInterval(restInt[b]);restRunning[b]=false;restInt[b]=null;refreshRestBtn(b);
+}
+function toggleRest(b){restRunning[b]?stopRest(b):startRest(b);}
+function setRest(b,s){
+  clearInterval(restInt[b]);restRunning[b]=false;restInt[b]=null;
+  S.timers[b].restRemain=s;S.timers[b].restStartTs=null;
+  saveS();refreshRestDisplay(b);refreshRestBtn(b);
+}
+function refreshRestBtn(b){const el=document.getElementById('restGoBtn_'+b);if(!el)return;el.textContent=restRunning[b]?'⏸ Pausa':'▶ Iniciar';el.className='t-btn '+(restRunning[b]?'running':'go');}
+
+let sessRunning={morning:false,afternoon:false}, sessInt={morning:null,afternoon:null};
+function getSessSecs(b){const t=S.timers[b];if(sessRunning[b]&&t.startTs)return(t.accum||0)+Math.floor((Date.now()-t.startTs)/1000);return t.accum||0;}
+function refreshSessDisplay(b){
+  const el=document.getElementById('sessDisp_'+b);if(!el)return;
+  const total=getSessSecs(b);
+  const h=Math.floor(total/3600);const m=Math.floor((total%3600)/60).toString().padStart(2,'0');const s=(total%60).toString().padStart(2,'0');
+  el.textContent=h>0?`${h}:${m}:${s}`:`${m}:${s}`;
+}
+function startSess(b){
+  if(sessRunning[b])return;
+  S.timers[b].startTs=Date.now();sessRunning[b]=true;
+  saveS();sessInt[b]=setInterval(()=>refreshSessDisplay(b),1000);refreshSessBtn(b);
+}
+function stopSess(b){
+  if(sessRunning[b]){S.timers[b].accum=getSessSecs(b);S.timers[b].startTs=null;saveS();}
+  clearInterval(sessInt[b]);sessRunning[b]=false;sessInt[b]=null;refreshSessBtn(b);
+}
+function toggleSess(b){sessRunning[b]?stopSess(b):initCountdown(b);}
+function refreshSessBtn(b){const el=document.getElementById('sessGoBtn_'+b);if(!el)return;el.textContent=sessRunning[b]?'⏸ Pausar':'▶ Iniciar';el.className='t-btn '+(sessRunning[b]?'session-running':'session-go');}
+function resetSessTimer(b){S.timers[b].accum=0;S.timers[b].startTs=null;sessRunning[b]=false;clearInterval(sessInt[b]);sessInt[b]=null;saveS();}
+
+let cdInt=null;
+function initCountdown(b){
+  if(sessRunning[b]){stopSess(b);return;}
+  document.getElementById('countdownBlockLabel').textContent=b==='morning'?'MAÑANA':'TARDE';
+  const overlay=document.getElementById('countdownOverlay');const numEl=document.getElementById('countdownNum');
+  let count=5;numEl.textContent=count;overlay.classList.add('show');clearInterval(cdInt);
+  cdInt=setInterval(()=>{
+    count--;
+    if(count<=0){clearInterval(cdInt);overlay.classList.remove('show');startSess(b);refreshSessBtn(b);showToast('⏱ Cronómetro iniciado — ¡a correr!');return;}
+    numEl.textContent=count;numEl.classList.add('pop');setTimeout(()=>numEl.classList.remove('pop'),150);
+  },1000);
+}
+
+/* ══ TOAST ══ */
+let toastTO=null;
+function showToast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(toastTO);toastTO=setTimeout(()=>el.classList.remove('show'),2800);}
+
+/* ══ TABS ══ */
+let currentTab='hoy';
+function goTab(t){
+  currentTab=t;
+  ['hoy','historial'].forEach(id=>{
+    document.getElementById('view'+(id==='hoy'?'Hoy':'Historial')).style.display=t===id?'block':'none';
+    document.getElementById('nav'+(id==='hoy'?'Hoy':'Historial')).classList.toggle('active',t===id);
+  });
+  document.getElementById('scrollArea').scrollTop=0;
+  if(t==='hoy')renderHoy();if(t==='historial')renderHistorial();
+}
+
+/* ══ HOY — plan + bloques mañana/tarde ══ */
+function renderHoy(){
+  const tk=todayKey();const dw=new Date().getDay();
+  const log=S.logs[tk]||{};
+  const el=document.getElementById('viewHoy');
+  let h=`<div style="padding:4px 0"></div><div class="sec-lbl">Plan de mañanas — esta semana</div>`;
+  h+=renderPlanCard();
+  h+=`<div class="sec-lbl">Entrenamiento de hoy</div>`;
+  h+=renderMorningCard(tk,dw,!!log.morning?.completed);
+  if(hasTarde(dw)){
+    h+=renderAfternoonCard(tk,dw,!!log.afternoon?.completed);
+  }else{
+    h+=`<div class="rest-card" style="margin-top:10px;"><div class="rest-icon">🌙</div><div class="rest-title">Sin bloque de tarde hoy</div><div class="rest-sub">Hoy solo entrenas en la mañana. Cuando termines, ya cumpliste — no hay excusa para más.</div></div>`;
+  }
+  el.innerHTML=h;
+}
+
+function renderPlanCard(){
+  const raw=S.weeklyMorningPlan.raw||'';
+  let upd='';
+  if(S.weeklyMorningPlan.updatedAt){
+    const days=Math.floor((Date.now()-S.weeklyMorningPlan.updatedAt)/86400000);
+    upd=days===0?'actualizado hoy':days===1?'actualizado hace 1 día':`actualizado hace ${days} días`;
+  }
+  return `<div class="plan-card">
+    <div class="plan-card-head"><div class="plan-card-title">Pega aquí el plan del entrenador</div><div class="plan-updated">${upd}</div></div>
+    <textarea class="plan-textarea" id="planTextarea" placeholder="Lunes&#10;. 60' trote&#10;Martes&#10;. 10x400(1'13&quot;/1'12&quot;)&#10;...">${escapeHTML(raw)}</textarea>
+    <button class="plan-save-btn" onclick="saveMorningPlan()">Guardar plan de la semana</button>
+  </div>`;
+}
+function saveMorningPlan(){
+  const raw=document.getElementById('planTextarea').value;
+  S.weeklyMorningPlan={raw,parsed:parseMorningPlan(raw),updatedAt:Date.now()};
+  autoBreakdownMorning(new Date().getDay());
+  saveS();
+  showToast('✓ Plan guardado — a cumplirlo.');
+  renderHeader();renderHoy();
+}
+
+function renderMorningCard(tk,dw,done){
+  const plan=(S.weeklyMorningPlan.parsed||{})[DOW_KEYS[dw]]||'';
+  const sess=S.session.morning;const pruebas=sess.pruebas||[];
+  const rs=getRestSecs('morning');const rm=Math.floor(rs/60).toString().padStart(2,'0');const rsec=(rs%60).toString().padStart(2,'0');
+  const st=getSessSecs('morning');const sh=Math.floor(st/3600);const sm=Math.floor((st%3600)/60).toString().padStart(2,'0');const ss=(st%60).toString().padStart(2,'0');
+  const sessDisp=sh>0?`${sh}:${sm}:${ss}`:`${sm}:${ss}`;
+  let h=`<div class="day-card morning-card${done?' done-card':''}">`;
+  h+=`<div class="day-card-head"><div class="day-head-left"><div class="day-name blk-morning">MAÑANA</div><div class="day-meta">${DOW_NAMES[dw]}${plan?'':' · sin plan cargado'}</div></div><div class="day-head-right"><div class="day-xp-tag">+${XP_MORNING} XP</div><div class="done-ring${done?' completed':''}">${done?'✓':'○'}</div></div></div>`;
+  h+=`<div class="session-body">`;
+  h+=plan?`<div class="plan-text-box">${escapeHTML(plan)}</div>`:`<div class="plan-text-box" style="color:var(--muted)">No cargaste el plan de esta semana. Pégalo arriba — sin plan no hay excusa, pero tampoco hay referencia.</div>`;
+  h+=`<div class="km-input-row"><label>Distancia (km)</label><input class="set-inp" type="number" step="0.01" placeholder="0.0" value="${escapeAttr(sess.km)}" ${done?'disabled':''} oninput="updKm('morning',this.value)"></div>`;
+  h+=`<div class="dual-timer">
+    <div class="timer-block"><div class="timer-block-label">Descanso</div><div id="restDisp_morning" class="timer-display xp-col${rs<=10&&rs>0?' urgent':''}">${rm}:${rsec}</div><div class="timer-controls"><button class="t-btn ${restRunning.morning?'running':'go'}" id="restGoBtn_morning" onclick="toggleRest('morning')">${restRunning.morning?'⏸ Pausa':'▶ Iniciar'}</button><div class="timer-row"><button class="t-btn" onclick="setRest('morning',60)">60s</button><button class="t-btn" onclick="setRest('morning',90)">90s</button><button class="t-btn" onclick="setRest('morning',180)">3m</button><button class="t-btn" onclick="setRest('morning',300)">5m</button></div></div></div>
+    <div class="timer-block"><div class="timer-block-label">Cronómetro ⏱</div><div id="sessDisp_morning" class="timer-display green-col">${sessDisp}</div><div class="timer-controls"><button class="t-btn ${sessRunning.morning?'session-running':'session-go'}" id="sessGoBtn_morning" onclick="toggleSess('morning')">${sessRunning.morning?'⏸ Pausar':'▶ Iniciar'}</button><div style="font-size:9px;color:var(--muted);margin-top:4px;line-height:1.4;">5s para sincronizar tu reloj</div></div></div>
+  </div>`;
+  h+=`<div class="reps-head-row"><span>Pruebas de hoy</span>${done?'':'<button class="add-rep-btn" onclick="addPrueba()">+ Agregar prueba</button>'}</div>`;
+  if(pruebas.length){
+    pruebas.forEach((p,pIdx)=>{
+      h+=`<div class="prueba-card">`;
+      h+=`<div class="prueba-head"><input class="prueba-name-inp" type="text" placeholder="ej. 400m" value="${escapeAttr(p.name)}" ${done?'disabled':''} oninput="updPruebaName(${pIdx},this.value)">${done?'':`<div class="rep-remove" onclick="removePrueba(${pIdx})">×</div>`}</div>`;
+      (p.reps||[]).forEach((r,rIdx)=>{
+        h+=`<div class="rep-row"><div class="rep-n">${rIdx+1}</div><input class="set-inp${r.real?' has-val':''}" type="text" placeholder="ej. 1'12&quot;" value="${escapeAttr(r.real)}" ${done?'disabled':''} oninput="updRepTime(${pIdx},${rIdx},this.value);this.classList.toggle('has-val',this.value!=='')"><div class="rep-remove" onclick="${done?'':`removeRepFromPrueba(${pIdx},${rIdx})`}">${done?'':'×'}</div></div>`;
+        h+=`<div class="feel-row">`;
+        FEEL_OPTIONS.forEach(f=>{
+          h+=`<button class="feel-chip${r.feel===f.key?' selected':''}" ${done?'disabled':''} onclick="setRepFeel(${pIdx},${rIdx},'${f.key}')">${f.emoji} ${f.label}</button>`;
+        });
+        h+=`</div>`;
+      });
+      h+=done?'':`<button class="add-rep-btn" onclick="addRepToPrueba(${pIdx})">+ Repetición</button>`;
+      h+=`</div>`;
+    });
+  }else{
+    h+=`<div class="reps-empty">Sin pruebas añadidas. Si hoy es trote continuo, no necesitas — solo registra el km arriba. Si el plan trae series (ej. 10x400), agrega una prueba y anota cada repetición con su tiempo y cómo te sentiste.</div>`;
+  }
+  h+=`<button class="complete-btn${done?' is-done':''}" onclick="completeBlock('morning')" ${done?'disabled':''}>${done?'✓ Mañana completada':'Completar mañana'}</button>`;
+  h+=`</div></div>`;
+  return h;
+}
+
+function renderAfternoonCard(tk,dw,done){
+  const tarde=TARDE[dw];const sess=S.session.afternoon;
+  const rs=getRestSecs('afternoon');const rm=Math.floor(rs/60).toString().padStart(2,'0');const rsec=(rs%60).toString().padStart(2,'0');
+  const st=getSessSecs('afternoon');const sh=Math.floor(st/3600);const sm=Math.floor((st%3600)/60).toString().padStart(2,'0');const ss=(st%60).toString().padStart(2,'0');
+  const sessDisp=sh>0?`${sh}:${sm}:${ss}`:`${sm}:${ss}`;
+  let h=`<div class="day-card afternoon-card${done?' done-card':''}" style="margin-top:10px;">`;
+  h+=`<div class="day-card-head"><div class="day-head-left"><div class="day-name blk-afternoon">TARDE</div><div class="day-meta">${tarde.label} · ${tarde.items.length} bloques</div></div><div class="day-head-right"><div class="day-xp-tag fire-tag">+${XP_AFTERNOON} XP</div><div class="done-ring${done?' completed':''}">${done?'✓':'○'}</div></div></div>`;
+  h+=`<div class="session-body"><div class="checklist">`;
+  tarde.items.forEach((label,idx)=>{
+    const ticked=!!sess.items[idx];
+    h+=`<div class="check-item${ticked?' ticked':''}" onclick="${done?'':'toggleCheckItem('+idx+')'}"><div class="check-circle">${ticked?'✓':''}</div><div class="check-label">${escapeHTML(label)}</div></div>`;
+  });
+  h+=`</div>`;
+  h+=`<div class="km-input-row"><label>Distancia (km)</label><input class="set-inp" type="number" step="0.01" placeholder="0.0" value="${escapeAttr(sess.km)}" ${done?'disabled':''} oninput="updKm('afternoon',this.value)"></div>`;
+  h+=`<div class="dual-timer">
+    <div class="timer-block"><div class="timer-block-label">Descanso</div><div id="restDisp_afternoon" class="timer-display xp-col${rs<=10&&rs>0?' urgent':''}">${rm}:${rsec}</div><div class="timer-controls"><button class="t-btn ${restRunning.afternoon?'running':'go'}" id="restGoBtn_afternoon" onclick="toggleRest('afternoon')">${restRunning.afternoon?'⏸ Pausa':'▶ Iniciar'}</button><div class="timer-row"><button class="t-btn" onclick="setRest('afternoon',60)">60s</button><button class="t-btn" onclick="setRest('afternoon',90)">90s</button><button class="t-btn" onclick="setRest('afternoon',120)">2m</button><button class="t-btn" onclick="setRest('afternoon',180)">3m</button></div></div></div>
+    <div class="timer-block"><div class="timer-block-label">Cronómetro ⏱</div><div id="sessDisp_afternoon" class="timer-display green-col">${sessDisp}</div><div class="timer-controls"><button class="t-btn ${sessRunning.afternoon?'session-running':'session-go'}" id="sessGoBtn_afternoon" onclick="toggleSess('afternoon')">${sessRunning.afternoon?'⏸ Pausar':'▶ Iniciar'}</button><div style="font-size:9px;color:var(--muted);margin-top:4px;line-height:1.4;">5s para sincronizar tu reloj</div></div></div>
+  </div>`;
+  h+=`<button class="complete-btn${done?' is-done':''}" onclick="completeBlock('afternoon')" ${done?'disabled':''}>${done?'✓ Tarde completada':'Completar tarde'}</button>`;
+  h+=`</div></div>`;
+  return h;
+}
+
+function updKm(b,val){S.session[b].km=val;saveS();}
+function addPrueba(){S.session.morning.pruebas.push({name:'',reps:[]});saveS();renderHoy();}
+function removePrueba(pIdx){S.session.morning.pruebas.splice(pIdx,1);saveS();renderHoy();}
+function updPruebaName(pIdx,val){const p=S.session.morning.pruebas[pIdx];if(!p)return;p.name=val;saveS();}
+function addRepToPrueba(pIdx){const p=S.session.morning.pruebas[pIdx];if(!p)return;p.reps.push({real:'',feel:''});saveS();renderHoy();}
+function removeRepFromPrueba(pIdx,rIdx){const p=S.session.morning.pruebas[pIdx];if(!p)return;p.reps.splice(rIdx,1);saveS();renderHoy();}
+function updRepTime(pIdx,rIdx,val){const p=S.session.morning.pruebas[pIdx];if(!p||!p.reps[rIdx])return;p.reps[rIdx].real=val;saveS();}
+function setRepFeel(pIdx,rIdx,feel){const p=S.session.morning.pruebas[pIdx];if(!p||!p.reps[rIdx])return;p.reps[rIdx].feel=(p.reps[rIdx].feel===feel?'':feel);saveS();renderHoy();}
+function toggleCheckItem(idx){S.session.afternoon.items[idx]=!S.session.afternoon.items[idx];saveS();renderHoy();}
+
+/* ══ COMPLETAR BLOQUE ══ */
+async function completeBlock(b){
+  stopSess(b);stopRest(b);
+  const tk=todayKey();
+  const wasFullBefore=dayFullyComplete(tk);
+  if(!S.logs[tk])S.logs[tk]={};
+  const durSecs=getSessSecs(b);
+  let xp=b==='morning'?XP_MORNING:XP_AFTERNOON;
+  if(b==='morning'){
+    S.logs[tk].morning={completed:true,km:S.session.morning.km,pruebas:JSON.parse(JSON.stringify(S.session.morning.pruebas||[])),durSecs,ts:Date.now()};
+  }else{
+    S.logs[tk].afternoon={completed:true,km:S.session.afternoon.km,items:{...S.session.afternoon.items},durSecs,ts:Date.now()};
+  }
+  S.totalXP+=xp;
+  resetSessTimer(b);
+  const nowFull=dayFullyComplete(tk);
+  let bonus=0;
+  if(nowFull&&!wasFullBefore){
+    calcStreak();
+    if(S.streak>=14)bonus=20;else if(S.streak>=7)bonus=10;
+    if(bonus>0)S.totalXP+=bonus;
+  }
+  await saveS();
+  renderXP();renderCal();
+  if(nowFull&&!wasFullBefore){showCompleteModal(xp+bonus);}
+  else{showToast(b==='morning'?`💪 Mañana completada — +${xp} XP. Ahora la tarde.`:`💪 Tarde completada — +${xp} XP.`);}
+  renderHoy();
+}
+
+function showCompleteModal(xp){
+  const tk=todayKey();const log=S.logs[tk]||{};
+  const totalKm=(parseFloat(log.morning?.km)||0)+(parseFloat(log.afternoon?.km)||0);
+  const totalDur=(log.morning?.durSecs||0)+(log.afternoon?.durSecs||0);
+  document.getElementById('cmpName').textContent=totalKm>0?fmtKm(totalKm).toUpperCase():'COMPLETADO';
+  document.getElementById('cmpDur').textContent=totalDur>0?`⏱ ${fmtDur(totalDur)} entrenando hoy`:'';
+  document.getElementById('cmpStreak').textContent=S.streak;
+  document.getElementById('cmpXP').textContent=`+${xp}`;
+  const q=randomQuote();
+  document.getElementById('cmpQuote').textContent=`"${q.text}"`;
+  document.getElementById('cmpAuthor').textContent=q.tag?`— ${q.tag}`:'';
+  const el=document.getElementById('completeSplash');
+  el.style.display='flex';el.style.opacity='1';el.classList.remove('hide');
+  setTimeout(()=>{el.classList.add('hide');setTimeout(()=>{el.style.display='none';},650);},3800);
+}
+
+/* ══ HISTORIAL ══ */
+let openHistIdx=null;
+function renderHistorial(){
+  const el=document.getElementById('viewHistorial');
+  const entries=Object.entries(S.logs).filter(([,l])=>l.morning?.completed||l.afternoon?.completed).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,60);
+  if(!entries.length){el.innerHTML=`<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-title">Sin sesiones aún</div><div class="empty-sub">Completa tu primer entrenamiento y aparecerá aquí.</div></div>`;return;}
+  let h='<div style="padding:4px 0"></div>';
+  entries.forEach(([date,log],idx)=>{
+    const isOpen=openHistIdx===idx;
+    const dw=dowOfKey(date);
+    const totalKm=(parseFloat(log.morning?.km)||0)+(parseFloat(log.afternoon?.km)||0);
+    const totalDur=(log.morning?.durSecs||0)+(log.afternoon?.durSecs||0);
+    const tags=[];if(log.morning?.completed)tags.push('Mañana');if(log.afternoon?.completed)tags.push('Tarde');
+    h+=`<div class="hist-entry"><div class="hist-head" onclick="toggleHist(${idx})"><div><div class="hist-day-name">${DOW_NAMES[dw]}${tags.length?' · '+tags.join(' + '):''}${totalKm>0?`<span class="hist-dur">📍 ${fmtKm(totalKm)}</span>`:''}${totalDur>0?`<span class="hist-dur">⏱ ${fmtDur(totalDur)}</span>`:''}</div><div class="hist-date">${fmtDate(date)}</div></div><div style="color:var(--muted);font-size:18px">${isOpen?'∧':'∨'}</div></div>`;
+    h+=`<div class="hist-body${isOpen?' open':''}">`;
+    if(log.morning?.completed){
+      h+=`<div class="hist-ex-name">Mañana${log.morning.km?` · ${log.morning.km}km`:''}</div>`;
+      (log.morning.pruebas||[]).forEach(p=>{
+        const hasAny=(p.reps||[]).some(r=>r.real||r.feel);
+        if(!hasAny)return;
+        h+=`<div class="hist-ex-name" style="color:var(--text);margin-top:8px;">${escapeHTML(p.name||'Prueba')}</div>`;
+        (p.reps||[]).forEach((r,rIdx)=>{
+          if(!r.real&&!r.feel)return;
+          const fo=FEEL_OPTIONS.find(f=>f.key===r.feel);
+          h+=`<div class="hist-set-row">R${rIdx+1}: <b>${escapeHTML(r.real||'—')}</b> ${fo?`<span>${fo.emoji} ${fo.label}</span>`:''}</div>`;
+        });
+      });
+    }
+    if(log.afternoon?.completed){
+      const tarde=TARDE[dw];
+      h+=`<div class="hist-ex-name">Tarde${log.afternoon.km?` · ${log.afternoon.km}km`:''}</div>`;
+      if(tarde)tarde.items.forEach((label,i)=>{const d2=log.afternoon.items?.[i];h+=`<div class="hist-set-row">${d2?'✓':'·'} <span>${escapeHTML(label)}</span></div>`;});
+    }
+    h+=`</div></div>`;
+  });
+  el.innerHTML=h;
+}
+function toggleHist(idx){openHistIdx=openHistIdx===idx?null:idx;renderHistorial();}
+
+/* ══ SPLASH + INIT ══ */
+function showSplash(){
+  document.getElementById('splashGreeting').textContent=greetingWord();
+  const q=randomQuote();
+  document.getElementById('splashQuoteText').textContent=`"${q.text}"`;
+  document.getElementById('splashAuthorText').textContent=q.tag?`— ${q.tag}`:'';
+  const el=document.getElementById('splashOverlay');
+  setTimeout(()=>{el.classList.add('hide');setTimeout(()=>el.style.display='none',650);},2200);
+}
+function resumeTimersOnInit(b){
+  if(S.timers[b].startTs){sessRunning[b]=true;sessInt[b]=setInterval(()=>refreshSessDisplay(b),1000);}
+  if(S.timers[b].restStartTs){
+    restRunning[b]=true;
+    if(getRestSecs(b)<=0){
+      // el descanso ya se cumplió mientras la app estaba cerrada — se cierra sin notificar de golpe al abrir
+      S.timers[b].restRemain=0;S.timers[b].restStartTs=null;restRunning[b]=false;saveS();
+    }else{
+      restInt[b]=setInterval(()=>restTick(b),1000);
+    }
+  }
+}
+async function init(){
+  await idbOpen();await loadS();await ensureFreshDay();calcStreak();
+  resumeTimersOnInit('morning');resumeTimersOnInit('afternoon');
+  renderHeader();renderXP();renderCal();renderHoy();
+  showSplash();
+  if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+  document.addEventListener('visibilitychange',()=>{
+    if(document.hidden)return;
+    ['morning','afternoon'].forEach(b=>{
+      refreshSessDisplay(b);
+      if(restRunning[b]&&getRestSecs(b)<=0){stopRest(b);showToast('✓ Descanso terminado');}
+      refreshRestDisplay(b);
+    });
+  });
+}
+init();
+</script>
+</body>
+</html>
