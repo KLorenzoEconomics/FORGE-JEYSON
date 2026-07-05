@@ -195,6 +195,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .empty-state{text-align:center;padding:48px 20px;color:var(--muted);}
 .empty-icon{font-size:36px;margin-bottom:12px}.empty-title{font-size:15px;font-weight:600;color:var(--subtle);margin-bottom:6px}.empty-sub{font-size:13px;line-height:1.5}
 
+.export-btn{width:100%;padding:13px;border:0.5px solid var(--border2);border-radius:var(--r);background:transparent;color:var(--muted);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;}
+.export-btn:active{opacity:.7;transform:scale(.98)}
 .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:#222;border:0.5px solid var(--border2);border-radius:var(--r);padding:12px 20px;font-size:13px;font-weight:500;z-index:300;transition:transform .3s cubic-bezier(.4,0,.2,1);pointer-events:none;padding-top:calc(12px + env(safe-area-inset-top,0));max-width:88%;text-align:center;}
 .toast.show{transform:translateX(-50%) translateY(0)}
 input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none}
@@ -257,10 +259,10 @@ input[type=number]{-moz-appearance:textfield}
   </div>
 </div>
 
-<div class="countdown-overlay" id="countdownOverlay">
+<div class="countdown-overlay" id="countdownOverlay" onclick="skipCountdown()">
   <div class="countdown-big" id="countdownNum">5</div>
   <div class="countdown-msg">Sincroniza tu reloj GPS — bloque <span id="countdownBlockLabel">MAÑANA</span><br>— presiona START en tu reloj ahora —</div>
-  <div class="countdown-sub">El cronómetro arranca cuando llegue a 0</div>
+  <div class="countdown-sub">Toca la pantalla para saltar y arrancar ya</div>
 </div>
 
 <div class="splash-overlay" id="completeSplash" style="display:none;">
@@ -348,6 +350,7 @@ async function saveS(){await idbSet('stateJeyson',S);}
 async function ensureFreshDay(){
   const tk=todayKey();
   if(S.lastActiveDate!==tk){
+    S.timers={morning:{startTs:null,accum:0,restStartTs:null,restRemain:0},afternoon:{startTs:null,accum:0,restStartTs:null,restRemain:0}};
     S.session={morning:{km:'',pruebas:[]},afternoon:{km:'',items:{}}};
     S.lastActiveDate=tk;
     autoBreakdownMorning(new Date().getDay());
@@ -577,9 +580,10 @@ function toggleSess(b){sessRunning[b]?stopSess(b):initCountdown(b);}
 function refreshSessBtn(b){const el=document.getElementById('sessGoBtn_'+b);if(!el)return;el.textContent=sessRunning[b]?'⏸ Pausar':'▶ Iniciar';el.className='t-btn '+(sessRunning[b]?'session-running':'session-go');}
 function resetSessTimer(b){S.timers[b].accum=0;S.timers[b].startTs=null;sessRunning[b]=false;clearInterval(sessInt[b]);sessInt[b]=null;saveS();}
 
-let cdInt=null;
+let cdInt=null, pendingCountdownBlock=null;
 function initCountdown(b){
   if(sessRunning[b]){stopSess(b);return;}
+  pendingCountdownBlock=b;
   document.getElementById('countdownBlockLabel').textContent=b==='morning'?'MAÑANA':'TARDE';
   const overlay=document.getElementById('countdownOverlay');const numEl=document.getElementById('countdownNum');
   let count=5;numEl.textContent=count;overlay.classList.add('show');clearInterval(cdInt);
@@ -588,6 +592,13 @@ function initCountdown(b){
     if(count<=0){clearInterval(cdInt);overlay.classList.remove('show');startSess(b);refreshSessBtn(b);showToast('⏱ Cronómetro iniciado — ¡a correr!');return;}
     numEl.textContent=count;numEl.classList.add('pop');setTimeout(()=>numEl.classList.remove('pop'),150);
   },1000);
+}
+function skipCountdown(){
+  if(!pendingCountdownBlock)return;
+  clearInterval(cdInt);
+  document.getElementById('countdownOverlay').classList.remove('show');
+  const b=pendingCountdownBlock;pendingCountdownBlock=null;
+  startSess(b);refreshSessBtn(b);showToast('⏱ Cronómetro iniciado — ¡a correr!');
 }
 
 /* ══ TOAST ══ */
@@ -619,6 +630,9 @@ function renderHoy(){
     h+=renderAfternoonCard(tk,dw,!!log.afternoon?.completed);
   }else{
     h+=`<div class="rest-card" style="margin-top:10px;"><div class="rest-icon">🌙</div><div class="rest-title">Sin bloque de tarde hoy</div><div class="rest-sub">Hoy solo entrenas en la mañana. Cuando termines, ya cumpliste — no hay excusa para más.</div></div>`;
+  }
+  if(log.morning?.completed||log.afternoon?.completed){
+    h+=`<div style="margin:14px 20px 6px"><button class="export-btn" onclick="exportDay('${tk}')">📤 Enviar reporte al entrenador</button></div>`;
   }
   el.innerHTML=h;
 }
@@ -762,7 +776,48 @@ function showCompleteModal(xp){
   setTimeout(()=>{el.classList.add('hide');setTimeout(()=>{el.style.display='none';},650);},3800);
 }
 
-/* ══ HISTORIAL ══ */
+/* ══ EXPORTAR AL ENTRENADOR ══ */
+function exportDay(key){
+  const log=S.logs[key]||{};
+  const dw=dowOfKey(key);
+  const plan=(S.weeklyMorningPlan.parsed||{})[DOW_KEYS[dw]]||'';
+  const [y,m,d]=key.split('-');
+  let txt=`📋 Forge — Jeyson\n`;
+  txt+=`📅 ${DOW_NAMES[dw]} ${d}/${m}/${y.slice(2)}\n`;
+  if(log.morning?.completed){
+    txt+=`━━━━━━━━━━━━━━━━━━\n`;
+    txt+=`🌅 MAÑANA\n`;
+    if(plan)txt+=`📌 ${plan}\n\n`;
+    (log.morning.pruebas||[]).forEach(p=>{
+      const hasAny=(p.reps||[]).some(r=>r.real||r.feel);
+      if(!hasAny)return;
+      txt+=`${p.name||'Prueba'}:\n`;
+      const filled=(p.reps||[]).filter(r=>r.real||r.feel);
+      let line='';
+      filled.forEach((r,i)=>{
+        const fo=FEEL_OPTIONS.find(f=>f.key===r.feel);
+        line+=`R${i+1}: ${r.real||'—'}${fo?' '+fo.emoji:''}  `;
+        if((i+1)%3===0){txt+=line.trimEnd()+'\n';line='';}
+      });
+      if(line.trim())txt+=line.trimEnd()+'\n';
+      txt+='\n';
+    });
+    if(log.morning.km)txt+=`📍 ${log.morning.km} km\n`;
+    if(log.morning.durSecs)txt+=`⏱ ${fmtDur(log.morning.durSecs)}\n`;
+  }
+  if(log.afternoon?.completed){
+    const tarde=TARDE[dw];
+    txt+=`━━━━━━━━━━━━━━━━━━\n`;
+    txt+=`🌆 TARDE\n`;
+    if(tarde)tarde.items.forEach((label,i)=>{const done=log.afternoon.items?.[i];txt+=`${done?'✓':'·'} ${label}\n`;});
+    if(log.afternoon.km)txt+=`📍 ${log.afternoon.km} km\n`;
+    if(log.afternoon.durSecs)txt+=`⏱ ${fmtDur(log.afternoon.durSecs)}\n`;
+  }
+  const totalKm=(parseFloat(log.morning?.km)||0)+(parseFloat(log.afternoon?.km)||0);
+  if(totalKm>0){txt+=`━━━━━━━━━━━━━━━━━━\n`;txt+=`Total del día: ${fmtKm(totalKm)}\n`;}
+  if(navigator.share){navigator.share({title:'Forge — Jeyson',text:txt}).catch(()=>{});}
+  else{navigator.clipboard?.writeText(txt).then(()=>showToast('✓ Reporte copiado — pégalo al entrenador')).catch(()=>showToast('No se pudo copiar'));}
+}
 let openHistIdx=null;
 function renderHistorial(){
   const el=document.getElementById('viewHistorial');
@@ -795,6 +850,7 @@ function renderHistorial(){
       h+=`<div class="hist-ex-name">Tarde${log.afternoon.km?` · ${log.afternoon.km}km`:''}</div>`;
       if(tarde)tarde.items.forEach((label,i)=>{const d2=log.afternoon.items?.[i];h+=`<div class="hist-set-row">${d2?'✓':'·'} <span>${escapeHTML(label)}</span></div>`;});
     }
+    h+=`<button class="export-btn" style="margin-top:14px;" onclick="exportDay('${date}')">📤 Enviar al entrenador</button>`;
     h+=`</div></div>`;
   });
   el.innerHTML=h;
