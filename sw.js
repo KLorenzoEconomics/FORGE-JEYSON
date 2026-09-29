@@ -1,4 +1,4 @@
-const CACHE = 'forge-jeyson-v1';
+const CACHE = 'forge-jeyson-v2';
 const ASSETS = [
   '/FORGE-JEYSON/',
   '/FORGE-JEYSON/index.html',
